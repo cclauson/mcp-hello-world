@@ -116,6 +116,21 @@ app.delete('/mcp', authProvider.middleware, async (req: Request, res: Response) 
   await transport.handleRequest(req as any, res as any);
 });
 
+// Log JWT validation errors with detail
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Auth error:', {
+    name: err.name,
+    message: err.message,
+    code: err.code,
+    status: err.status,
+    headers: err.headers,
+  });
+  res.status(err.status || 401).json({
+    error: err.message,
+    code: err.code,
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`MCP Hello World server listening on port ${PORT}`);
 });
