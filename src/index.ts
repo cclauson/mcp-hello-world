@@ -65,7 +65,8 @@ function createMcpServer(): McpServer {
 }
 
 // MCP StreamableHTTP endpoint - POST (messages)
-app.post('/mcp', authProvider.middleware, async (req: Request, res: Response) => {
+// Mounted at / because Claude sends MCP requests to the server root
+app.post('/', authProvider.middleware, async (req: Request, res: Response) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
   // Existing session
@@ -106,7 +107,7 @@ app.post('/mcp', authProvider.middleware, async (req: Request, res: Response) =>
 });
 
 // MCP StreamableHTTP endpoint - GET (SSE stream for server-to-client notifications)
-app.get('/mcp', authProvider.middleware, async (req: Request, res: Response) => {
+app.get('/', authProvider.middleware, async (req: Request, res: Response) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !sessions.has(sessionId)) {
     res.status(400).json({ error: 'Invalid or missing session ID' });
@@ -117,7 +118,7 @@ app.get('/mcp', authProvider.middleware, async (req: Request, res: Response) => 
 });
 
 // MCP StreamableHTTP endpoint - DELETE (session termination)
-app.delete('/mcp', authProvider.middleware, async (req: Request, res: Response) => {
+app.delete('/', authProvider.middleware, async (req: Request, res: Response) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !sessions.has(sessionId)) {
     res.status(400).json({ error: 'Invalid or missing session ID' });
