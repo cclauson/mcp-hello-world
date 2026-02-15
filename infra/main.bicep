@@ -124,7 +124,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: containerAppName
-          image: '${containerRegistry.properties.loginServer}/${containerAppName}:latest'
+          // Bootstrap with a public placeholder image. The app deployment workflow
+          // replaces this with the real image from ACR. This is necessary because ACR
+          // is created in this same deployment, so no app image exists yet to pull.
+          image: 'mcr.microsoft.com/k8se/quickstart:latest'
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
