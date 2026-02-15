@@ -7,6 +7,17 @@ import { z } from 'zod';
 import { createAuthProvider } from './auth/index.js';
 
 const app = express();
+
+// Log every incoming request before anything else
+app.use((req, _res, next) => {
+  console.log(`${req.method} ${req.url}`, {
+    hasAuth: !!req.headers.authorization,
+    contentType: req.headers['content-type'],
+    sessionId: req.headers['mcp-session-id'] || 'none',
+  });
+  next();
+});
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
