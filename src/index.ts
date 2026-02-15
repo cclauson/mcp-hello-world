@@ -115,12 +115,12 @@ app.post('/', authProvider.middleware, async (req: Request, res: Response) => {
   };
 
   await server.connect(transport);
+  await transport.handleRequest(req as any, res as any, req.body);
 
+  // Store session after handleRequest, which is when the session ID gets generated
   if (transport.sessionId) {
     sessions.set(transport.sessionId, { transport, server });
   }
-
-  await transport.handleRequest(req as any, res as any, req.body);
 });
 
 // MCP StreamableHTTP endpoint - GET (SSE stream for server-to-client notifications)
