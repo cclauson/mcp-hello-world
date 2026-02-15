@@ -1,6 +1,7 @@
 param location string = resourceGroup().location
-param environmentName string
 param containerRegistryName string
+param containerAppEnvName string
+param logAnalyticsWorkspaceName string
 param containerAppName string = 'mcp-hello-world'
 
 @secure()
@@ -12,7 +13,7 @@ param auth0Audience string
 // --- Log Analytics (required by Container Apps) ---
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: '${environmentName}-logs'
+  name: logAnalyticsWorkspaceName
   location: location
   properties: {
     sku: {
@@ -38,7 +39,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
 // --- Container Apps Environment ---
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
-  name: '${environmentName}-env'
+  name: containerAppEnvName
   location: location
   properties: {
     appLogsConfiguration: {
