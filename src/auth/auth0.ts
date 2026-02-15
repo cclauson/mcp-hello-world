@@ -4,6 +4,8 @@ import type { Request, Response, NextFunction } from 'express';
 import type { AuthProvider } from './types.js';
 
 export function createAuth0Provider(domain: string, audience: string): AuthProvider {
+  console.log('Auth0 config:', { domain, audience, issuerBaseURL: `https://${domain}` });
+
   const jwtCheck = auth({
     audience,
     issuerBaseURL: `https://${domain}`,

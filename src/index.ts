@@ -117,13 +117,24 @@ app.delete('/mcp', authProvider.middleware, async (req: Request, res: Response) 
 });
 
 // Log JWT validation errors with detail
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // Try to decode the token payload (without verification) for debugging
+  const authHeader = req.headers.authorization;
+  let tokenClaims: any = null;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const parts = authHeader.slice(7).split('.');
+      if (parts.length === 3) {
+        tokenClaims = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+      }
+    } catch { /* ignore decode errors */ }
+  }
   console.error('Auth error:', {
     name: err.name,
     message: err.message,
     code: err.code,
     status: err.status,
-    headers: err.headers,
+    tokenClaims,
   });
   res.status(err.status || 401).json({
     error: err.message,
