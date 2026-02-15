@@ -4,11 +4,24 @@ param containerAppEnvName string
 param logAnalyticsWorkspaceName string
 param containerAppName string = 'mcp-hello-world'
 
+@allowed(['auth0', 'entra'])
+param authProvider string
+
+// Auth0 params (used when authProvider == 'auth0')
 @secure()
-param auth0Domain string
+param auth0Domain string = ''
 
 @secure()
-param auth0Audience string
+param auth0Audience string = ''
+
+// Entra External ID params (used when authProvider == 'entra')
+@secure()
+param entraTenantId string = ''
+
+param entraTenantName string = ''
+
+@secure()
+param entraClientId string = ''
 
 // --- Log Analytics (required by Container Apps) ---
 
@@ -52,6 +65,39 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
   }
 }
 
+// --- Secrets and env vars (conditional on auth provider) ---
+
+var acrSecret = {
+  name: 'acr-password'
+  value: containerRegistry.listCredentials().passwords[0].value
+}
+
+var auth0Secrets = authProvider == 'auth0' ? [
+  { name: 'auth0-domain', value: auth0Domain }
+  { name: 'auth0-audience', value: auth0Audience }
+] : []
+
+var entraSecrets = authProvider == 'entra' ? [
+  { name: 'entra-tenant-id', value: entraTenantId }
+  { name: 'entra-client-id', value: entraClientId }
+] : []
+
+var commonEnv = [
+  { name: 'PORT', value: '3000' }
+  { name: 'AUTH_PROVIDER', value: authProvider }
+]
+
+var auth0Env = authProvider == 'auth0' ? [
+  { name: 'AUTH0_DOMAIN', secretRef: 'auth0-domain' }
+  { name: 'AUTH0_AUDIENCE', secretRef: 'auth0-audience' }
+] : []
+
+var entraEnv = authProvider == 'entra' ? [
+  { name: 'ENTRA_TENANT_ID', secretRef: 'entra-tenant-id' }
+  { name: 'ENTRA_TENANT_NAME', value: entraTenantName }
+  { name: 'ENTRA_CLIENT_ID', secretRef: 'entra-client-id' }
+] : []
+
 // --- Container App ---
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
@@ -72,20 +118,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: [
-        {
-          name: 'acr-password'
-          value: containerRegistry.listCredentials().passwords[0].value
-        }
-        {
-          name: 'auth0-domain'
-          value: auth0Domain
-        }
-        {
-          name: 'auth0-audience'
-          value: auth0Audience
-        }
-      ]
+      secrets: concat([acrSecret], auth0Secrets, entraSecrets)
     }
     template: {
       containers: [
@@ -96,20 +129,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             cpu: json('0.25')
             memory: '0.5Gi'
           }
-          env: [
-            {
-              name: 'PORT'
-              value: '3000'
-            }
-            {
-              name: 'AUTH0_DOMAIN'
-              secretRef: 'auth0-domain'
-            }
-            {
-              name: 'AUTH0_AUDIENCE'
-              secretRef: 'auth0-audience'
-            }
-          ]
+          env: concat(commonEnv, auth0Env, entraEnv)
         }
       ]
       scale: {

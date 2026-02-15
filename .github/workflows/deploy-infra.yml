@@ -38,5 +38,9 @@ jobs:
               containerRegistryName=${{ steps.unique_names.outputs.acrName }} \
               containerAppEnvName=${{ steps.unique_names.outputs.containerAppEnvName }} \
               logAnalyticsWorkspaceName=${{ steps.unique_names.outputs.logAnalyticsWorkspaceName }} \
-              auth0Domain=${{ secrets.AUTH0_DOMAIN }} \
-              auth0Audience=${{ secrets.AUTH0_AUDIENCE }}
+              authProvider=${{ vars.AUTH_PROVIDER }} \
+              auth0Domain="${{ secrets.AUTH0_DOMAIN }}" \
+              auth0Audience="${{ secrets.AUTH0_AUDIENCE }}" \
+              entraTenantId="${{ secrets.ENTRA_TENANT_ID }}" \
+              entraTenantName="${{ vars.ENTRA_TENANT_NAME }}" \
+              entraClientId="${{ secrets.ENTRA_CLIENT_ID }}"

@@ -4,27 +4,26 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { createAuthMiddleware, handleProtectedResourceMetadata, handleAuthServerMetadata } from './auth.js';
+import { createAuthProvider } from './auth/index.js';
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN!;
-const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE!;
+const authProvider = createAuthProvider();
 
 // --- OAuth2 discovery endpoints (MCP spec) ---
 
 // RFC 9728 - Protected Resource Metadata
 // Tells MCP clients which authorization server to use
 app.get('/.well-known/oauth-protected-resource', (req, res) => {
-  handleProtectedResourceMetadata(req, res, AUTH0_DOMAIN);
+  authProvider.handleProtectedResourceMetadata(req, res);
 });
 
-// RFC 8414 - Authorization Server Metadata (proxied to Auth0)
-// Fallback for clients that check the MCP server directly
-app.get('/.well-known/oauth-authorization-server', (_req, res) => {
-  handleAuthServerMetadata(res, AUTH0_DOMAIN);
+// RFC 8414 - Authorization Server Metadata
+// Proxies the auth server's metadata for clients that check the MCP server directly
+app.get('/.well-known/oauth-authorization-server', (req, res) => {
+  authProvider.handleAuthServerMetadata(req, res);
 });
 
 // --- Health check ---
@@ -54,10 +53,8 @@ function createMcpServer(): McpServer {
   return server;
 }
 
-const authMiddleware = createAuthMiddleware(AUTH0_DOMAIN, AUTH0_AUDIENCE);
-
 // MCP StreamableHTTP endpoint - POST (messages)
-app.post('/mcp', authMiddleware, async (req: Request, res: Response) => {
+app.post('/mcp', authProvider.middleware, async (req: Request, res: Response) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
   // Existing session
@@ -98,7 +95,7 @@ app.post('/mcp', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // MCP StreamableHTTP endpoint - GET (SSE stream for server-to-client notifications)
-app.get('/mcp', authMiddleware, async (req: Request, res: Response) => {
+app.get('/mcp', authProvider.middleware, async (req: Request, res: Response) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !sessions.has(sessionId)) {
     res.status(400).json({ error: 'Invalid or missing session ID' });
@@ -109,7 +106,7 @@ app.get('/mcp', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // MCP StreamableHTTP endpoint - DELETE (session termination)
-app.delete('/mcp', authMiddleware, async (req: Request, res: Response) => {
+app.delete('/mcp', authProvider.middleware, async (req: Request, res: Response) => {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (!sessionId || !sessions.has(sessionId)) {
     res.status(400).json({ error: 'Invalid or missing session ID' });
