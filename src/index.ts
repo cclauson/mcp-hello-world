@@ -67,6 +67,23 @@ function createMcpServer(): McpServer {
 // MCP StreamableHTTP endpoint - POST (messages)
 // Mounted at / because Claude sends MCP requests to the server root
 app.post('/', authProvider.middleware, async (req: Request, res: Response) => {
+  // Log incoming JSON-RPC method
+  const method = req.body?.method;
+  console.log('MCP request:', { method, id: req.body?.id });
+
+  // Intercept response to log what we send back
+  const originalJson = res.json.bind(res);
+  res.json = (body: any) => {
+    console.log('MCP response:', JSON.stringify(body).slice(0, 2000));
+    return originalJson(body);
+  };
+  const originalWrite = res.write.bind(res);
+  res.write = (chunk: any, ...args: any[]) => {
+    const str = typeof chunk === 'string' ? chunk : chunk?.toString();
+    if (str) console.log('MCP SSE chunk:', str.slice(0, 2000));
+    return (originalWrite as any)(chunk, ...args);
+  };
+
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
   // Existing session
