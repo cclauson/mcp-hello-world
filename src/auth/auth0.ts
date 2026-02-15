@@ -31,7 +31,9 @@ export function createAuth0Provider(domain: string, audience: string): AuthProvi
     middleware: [jwtCheck, bridgeAuthToMcp],
 
     handleProtectedResourceMetadata(req, res) {
-      const resource = `${req.protocol}://${req.headers.host}`;
+      // Use x-forwarded-proto if behind a reverse proxy (e.g. Container Apps ingress)
+      const proto = req.headers['x-forwarded-proto'] || req.protocol;
+      const resource = `${proto}://${req.headers.host}`;
       res.json({
         resource,
         authorization_servers: [`https://${domain}`],
