@@ -43,4 +43,5 @@ jobs:
               auth0Audience="${{ secrets.AUTH0_AUDIENCE }}" \
               entraTenantId="${{ secrets.ENTRA_TENANT_ID }}" \
               entraTenantName="${{ vars.ENTRA_TENANT_NAME }}" \
-              entraClientId="${{ secrets.ENTRA_CLIENT_ID }}"
+              entraClientId="${{ secrets.ENTRA_CLIENT_ID }}" \
+              proxyBaseUrl="${{ vars.PROXY_BASE_URL }}"

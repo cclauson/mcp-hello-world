@@ -4,7 +4,7 @@ param containerAppEnvName string
 param logAnalyticsWorkspaceName string
 param containerAppName string = 'mcp-hello-world'
 
-@allowed(['auth0', 'entra'])
+@allowed(['auth0', 'entra', 'entra-proxy'])
 param authProvider string
 
 // Auth0 params (used when authProvider == 'auth0')
@@ -22,6 +22,9 @@ param entraTenantName string = ''
 
 @secure()
 param entraClientId string = ''
+
+// Entra Proxy params (used when authProvider == 'entra-proxy')
+param proxyBaseUrl string = ''
 
 // --- Log Analytics (required by Container Apps) ---
 
@@ -98,6 +101,17 @@ var entraEnv = authProvider == 'entra' ? [
   { name: 'ENTRA_CLIENT_ID', secretRef: 'entra-client-id' }
 ] : []
 
+var entraProxySecrets = authProvider == 'entra-proxy' ? [
+  { name: 'entra-tenant-id', value: entraTenantId }
+  { name: 'entra-client-id', value: entraClientId }
+] : []
+
+var entraProxyEnv = authProvider == 'entra-proxy' ? [
+  { name: 'ENTRA_TENANT_ID', secretRef: 'entra-tenant-id' }
+  { name: 'ENTRA_CLIENT_ID', secretRef: 'entra-client-id' }
+  { name: 'PROXY_BASE_URL', value: proxyBaseUrl }
+] : []
+
 // --- Container App ---
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
@@ -118,7 +132,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'acr-password'
         }
       ]
-      secrets: concat([acrSecret], auth0Secrets, entraSecrets)
+      secrets: concat([acrSecret], auth0Secrets, entraSecrets, entraProxySecrets)
     }
     template: {
       containers: [
@@ -132,7 +146,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
             cpu: json('0.25')
             memory: '0.5Gi'
           }
-          env: concat(commonEnv, auth0Env, entraEnv)
+          env: concat(commonEnv, auth0Env, entraEnv, entraProxyEnv)
         }
       ]
       scale: {
