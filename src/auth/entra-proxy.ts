@@ -8,7 +8,7 @@ export function createEntraProxyProvider(tenantId: string, entraClientId: string
   const resource = `api://${entraClientId}`;
 
   const jwtCheck = auth({
-    audience: resource,
+    audience: entraClientId,
     issuerBaseURL,
     tokenSigningAlg: 'RS256',
   });
